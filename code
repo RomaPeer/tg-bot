@@ -1,0 +1,52 @@
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+import logging
+import requests
+from urllib.parse import quote_plus
+
+# Enable logging
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                     level=logging.INFO)
+
+logger = logging.getLogger(__name__)
+
+# Define the command handler for the /start command
+def start(update, context):
+    context.bot.send_message(chat_id=update.effective_chat.id, text="Welcome to the Search Bot! Send me a search query.")
+
+# Define the message handler for text messages
+def search(update, context):
+    query = update.message.text
+    encoded_query = quote_plus(query)
+    search_url = f"https://www.example.com/search?q={encoded_query}"  # Replace with your search engine URL
+
+    try:
+        response = requests.get(search_url)
+        response.raise_for_status()
+        # Process the search results here
+
+        context.bot.send_message(chat_id=update.effective_chat.id, text="Here are the search results:")
+        # Send the search results to the user
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error searching: {e}")
+        context.bot.send_message(chat_id=update.effective_chat.id, text="An error occurred while searching. Please try again.")
+
+# Define the main function
+def main():
+    # Set up the Telegram bot
+    updater = Updater(token='YOUR_TELEGRAM_BOT_TOKEN', use_context=True)
+    dispatcher = updater.dispatcher
+
+    # Define the handlers
+    start_handler = CommandHandler('start', start)
+    search_handler = MessageHandler(Filters.text & ~Filters.command, search)
+
+    # Add the handlers to the dispatcher
+    dispatcher.add_handler(start_handler)
+    dispatcher.add_handler(search_handler)
+
+    # Start the bot
+    updater.start_polling()
+    updater.idle()
+
+if __name__ == '__main__':
+    main()
